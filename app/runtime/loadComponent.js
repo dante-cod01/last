@@ -1,46 +1,60 @@
+import { componentsList } from "../../conf/componentsList.js"
 import { dependenciesList } from "../../conf/dependenciesList.js"
 
-const componentsModules = new Map()
-const dependenciesModules = new Map()
+const components_reg = new Map()
+const dependencies_reg = new Map()
 
-const registerModules = async (names, mode) => {
-    let newRegs = {}
-    let error = []
-    const list = mode === "component" ? componentsList : dependenciesList
-    const registry = mode === "component" ? componentsModules : dependenciesModules
+const register = (name) => {
+    const info = componentsList[name] || null
 
-    for (const name of names) {
-        const module = list.get(name)
-        !module && error.push([name], "module name not found")
+    if (!info) { console.error([name], "not found in components list"); return }
+    if (!components_reg.get(name)) components_reg.set(name, { "module": info.url, "dependencies": info.dependencies })
+    if (info.dependencies) {
+        for (const dep of info.dependencies) {
+            !dependencies_reg.get(dep) && dependencies_reg.set(dep, { "module": dependenciesList.get(dep) })
+        }
     }
+    return components_reg.get(name)
+}
 
-    if (error.length) {
-        error.forEach(item => console.log([mode], item))
-        return
+const importModules = async (registerComp) => {
+    const modules = {
+        "component": null,
+        "dependencies": null
     }
-
-    names.forEach(name => {
-        const module = list.get(name)
-        registry.set(name, { "module": module })
-        newRegs[name] = module
+    const component_promise = import(registerComp.module).then(mod => {
+        registerComp.module = mod
+        modules.component = mod
     })
 
-    await instanceModules(newRegs, registry)
-}
 
-const instanceModules = async (newRegs, registry) => {
-    const promises = []
-    for (const [name, url] of Object.entries(newRegs)) {
-        promises.push(import(url).then(moduleImported => {
-            registry.set(name, {
-                "module": moduleImported,
-                "instance": new moduleImported.default()
-            })
-        }))
+    let dependencies_promise = []
+    if (registerComp.dependencies.length) {
+        modules.dependencies = {}
+        for (const item of registerComp.dependencies) {
+            const dep = dependencies_reg.get(item)
+            dependencies_promise.push(import(dep.module).then(mod => {
+                dep.module = mod.default
+                modules.dependencies[item] = mod
+            }))
+        }
     }
-    await Promise.all(promises)
+    await Promise.all([component_promise, ...dependencies_promise])
+    return modules
 }
 
-export const loader = (modules) => {
-    const dependencies = registerModules(modules, "dependencies")
+const createInstances = (modules) => {
+    const instances = {
+        "component": null,
+        "dependencies": {}
+    }
+
+    instances.component = new modules.component.default()
+    if (modules.dependencies) Object.entries(modules.dependencies).forEach(([name, module]) => instances.dependencies[name] = new module.default())
+}
+
+export const loader = async (name) => {
+    const componentInReg = register(name)
+    const modules = componentInReg && await importModules(componentInReg)
+    const instances = createInstances(modules)
 }

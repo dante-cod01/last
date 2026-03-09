@@ -1,4 +1,3 @@
-export const tag = "component-test"
 export default class ReactiveBox extends HTMLElement {
     /* private props */
     #def_conf = {
@@ -53,4 +52,4 @@ export default class ReactiveBox extends HTMLElement {
         this.#draw()
     }
 }
-customElements.define(tag, ReactiveBox)
+customElements.define("component-test", ReactiveBox)
