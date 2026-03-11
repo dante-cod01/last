@@ -27,7 +27,6 @@ const importModules = async (registerComp) => {
         modules.component = mod
     })
 
-
     let dependencies_promise = []
     if (registerComp.dependencies.length) {
         modules.dependencies = {}
@@ -51,10 +50,20 @@ const createInstances = (modules) => {
 
     instances.component = new modules.component.default()
     if (modules.dependencies) Object.entries(modules.dependencies).forEach(([name, module]) => instances.dependencies[name] = new module.default())
+    return instances
 }
 
-export const loader = async (name) => {
+export const loader = async (name, box) => {
     const componentInReg = register(name)
     const modules = componentInReg && await importModules(componentInReg)
     const instances = createInstances(modules)
+    const component = box.appendChild(instances.component)
+    component.deps = instances.dependencies
+
+    const info = component.getInfo()
+    if (info.dependencies._all) {
+        return component
+    } else {
+        Object.entries(info.dependencies).forEach(([dep, value]) => (dep !== "_all" && value === false) && console.error([dep], value))
+    }
 }
