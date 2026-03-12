@@ -37,11 +37,17 @@ export default class base {
         Object.entries(css).forEach(([prop, value]) => dom.style.setProperty(`--${prop}`, value))
     }
 
-    /* COMPONENTS ELEMENTS */
+    /* DOM ELEMENTS */
+    add(dom, tag, id = null, classNames = null) {
+        const element = document.createElement(tag)
+        id && (element.id = id)
+        classNames && (element.classList = classNames)
+        dom.appendChild(element)
+        return element
+    }
+
     addStyle(dom) {
-        const style = document.createElement("style")
-        dom.appendChild(style)
-        style.classList.add("componentStyle")
+        const style = this.add(dom, "style", "", "componentStyle")
         style.textContent = `
             * {
                 margin: 0px;
@@ -51,5 +57,23 @@ export default class base {
             }
         `
         return style
+    }
+
+    /* IMPORTS RESOURCES */
+    addLinks(dom, links) {
+        const addFont = (dom, font) => {
+            const link = this.add(dom, "link")
+            link.setAttribute("href", font.url)
+            link.setAttribute("rel", "stylesheet")
+            return link
+        }
+
+        links.forEach(item => {
+            if (item.type === "font") {
+                const previousImport = document.head.querySelector(`link[href="${item.url}"]`)
+                if (item.material && !previousImport) addFont(document.head, item)
+                const link = addFont(dom, item)
+            }
+        })
     }
 }
