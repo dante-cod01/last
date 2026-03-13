@@ -1,5 +1,5 @@
 export const componentsList = {
-    reactive_box: {
+    "component-box": {
         url: "/components/micro/boxes/reactive_box.js",
         dependencies: ["base"]
     }

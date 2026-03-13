@@ -4,66 +4,41 @@ import { dependenciesList } from "../../conf/dependenciesList.js"
 const components_reg = new Map()
 const dependencies_reg = new Map()
 
-const register = (name) => {
-    const info = componentsList[name] || null
-
-    if (!info) { console.error([name], "not found in components list"); return }
-    if (!components_reg.get(name)) components_reg.set(name, { "module": info.url, "dependencies": info.dependencies })
-    if (info.dependencies) {
-        for (const dep of info.dependencies) {
-            !dependencies_reg.get(dep) && dependencies_reg.set(dep, { "module": dependenciesList.get(dep) })
-        }
-    }
-    return components_reg.get(name)
+const register = (reg, list, name) => {
+    if (!list[name]) { console.error({ name }, `❌ not found in ${reg === components_reg ? "COMPONENTS" : "DEPENDENCIES"} list`); return }
+    reg === components_reg
+        ? !reg.get(name) && reg.set(name, { "url": list[name].url, "module": null, "depsBase": list[name].dependencies, "depsOptionals": [], "used": [] })
+        : !reg.get(name) && reg.set(name, { "url": list[name].url, "module": null, "instance": null, "used": [] })
 }
 
-const importModules = async (registerComp) => {
-    const modules = {
-        "component": null,
-        "dependencies": null
-    }
-    const component_promise = import(registerComp.module).then(mod => {
-        registerComp.module = mod
-        modules.component = mod
-    })
-
-    let dependencies_promise = []
-    if (registerComp.dependencies.length) {
-        modules.dependencies = {}
-        for (const item of registerComp.dependencies) {
-            const dep = dependencies_reg.get(item)
-            dependencies_promise.push(import(dep.module).then(mod => {
-                dep.module = mod.default
-                modules.dependencies[item] = mod
-            }))
-        }
-    }
-    await Promise.all([component_promise, ...dependencies_promise])
-    return modules
+const importMods = async (reg, list, name) => {
+    !reg.get(name).module && (reg.get(name).module = await import(list[name].url))
 }
 
-const createInstances = (modules) => {
-    const instances = {
-        "component": null,
-        "dependencies": {}
-    }
-
-    instances.component = new modules.component.default()
-    if (modules.dependencies) Object.entries(modules.dependencies).forEach(([name, module]) => instances.dependencies[name] = new module.default())
-    return instances
+const createInstance = (dep) => {
+    const regDep = dependencies_reg.get(dep)
+    !regDep.instance && (regDep.instance = new regDep.module.default())
+    return regDep.instance
 }
 
 export const loader = async (name, box) => {
-    const componentInReg = register(name)
-    const modules = componentInReg && await importModules(componentInReg)
-    const instances = createInstances(modules)
-    const component = box.appendChild(instances.component)
-    component.deps = instances.dependencies
+    /* registers */
+    register(components_reg, componentsList, name)
+    componentsList[name].dependencies.forEach(dep => register(dependencies_reg, dependenciesList, dep))
+    /* import modules */
+    const promises = []
+    promises.push(importMods(components_reg, componentsList, name))
+    componentsList[name].dependencies.forEach(dep => promises.push(importMods(dependencies_reg, dependenciesList, dep)))
+    await Promise.all(promises)
+    /* create dependencies instances */
+    const deps = componentsList[name].dependencies
+    const instances = {}
+    deps.forEach(dep => instances[dep] = createInstance(dep))
+    /* create component */
+    const component = document.createElement(name)
+    box.appendChild(component)
+    /* apply conf */
+    Object.keys(instances).length && (component.deps = instances)
+    console.log(component.deps)
 
-    const info = component.getInfo()
-    if (info.dependencies._all) {
-        return component
-    } else {
-        Object.entries(info.dependencies).forEach(([dep, value]) => (dep !== "_all" && value === false) && console.error([dep], value))
-    }
 }

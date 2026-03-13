@@ -1,8 +1,8 @@
-import { loader } from "./loadComponent.js"
+import * as load from "./loadComponent.js"
 
 const importTest = async () => {
-    const componentName = "reactive_box"
-    const component = await loader(componentName, document.body)
+    const componentName = "component-box"
+    const component = await load.loader(componentName, document.body)
 
     const css = {
         host_width: "400px",
@@ -21,7 +21,7 @@ const importTest = async () => {
         direction: "ver"
     }
     const data = {
-        text: "Test Text"
+        text: "Next Level"
     }
     const links = [
         { type: "font", material: true, name: "Permanent Marker", url: "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" }
@@ -31,7 +31,9 @@ const importTest = async () => {
     component.logic = logic
     component.data = data
     component.links = links
-    component.init()
-}
+/*     component.init()
+ *//*     await load.updateDependencie(component, "life")
+    component.deps.life.test()
+ */}
 
 importTest()

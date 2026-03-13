@@ -1,5 +1,5 @@
-export default class ReactiveBox extends HTMLElement {
-    /* private props */
+export default class ComponentTest extends HTMLElement {
+    /* PRIVATE PROPS */
     #requiredDeps = [
         "base"
     ]
@@ -33,7 +33,7 @@ export default class ReactiveBox extends HTMLElement {
         super()
         this.attachShadow({ mode: "open" })
 
-        /* public props */
+        /* PUBLIC PROPS */
         this.dom = this.shadowRoot
         this.deps = {}
         this.css = null
@@ -44,7 +44,7 @@ export default class ReactiveBox extends HTMLElement {
         this.initialized = null
     }
 
-    /* private methods */
+    /* PRIVATE METHODS */
     #verifiqueDeps() {
         const depsStatus = { "_all": true }
         this.#requiredDeps.forEach(item => {
@@ -65,10 +65,6 @@ export default class ReactiveBox extends HTMLElement {
         this.logic.direction === "ver" && main.classList.add("ver")
     }
 
-    #applyLogic() {
-        this.#logicDirection()
-    }
-
     #dataText() {
         const main = this.dom.querySelector(".main")
         if (this.data.text) {
@@ -80,9 +76,8 @@ export default class ReactiveBox extends HTMLElement {
         }
     }
 
-    #applyData() {
-        this.#dataText()
-    }
+    #applyLogic() { this.#logicDirection() }
+    #applyData() { this.#dataText() }
 
     #draw() {
         this.dom.innerHTML = `<div class="main" id="${this.#CONF.id}"></div>`
@@ -125,7 +120,14 @@ export default class ReactiveBox extends HTMLElement {
         `
     }
 
-    /* public methods */
+    /* PUBLIC METHODS */
+    addDepsInstances(name, instance) {
+        console.log(this.deps)
+        name in this.deps
+            ? console.error([this], `dependency ${[name]} previously inyected`)
+            : this.deps[name] = instance
+    }
+
     getInfo() {
         return {
             "dependencies": this.#verifiqueDeps(),
@@ -141,19 +143,23 @@ export default class ReactiveBox extends HTMLElement {
         }
     }
 
-    prepare() {
+    /* LIFECYCLES */
+    prepare() { 
         this.#prepareConf()
         this.prepared = true
     }
 
     init() {
-        if (!this.initialized) {
-            !this.prepared && this.prepare()
-            this.#draw()
-            this.#applyLogic()
-            this.#applyData()
-            this.initialized = true
-        } else { console.error([this], "already initialized") }
+        const deps = this.#verifiqueDeps()
+        this.initialized && console.error([this], "already initialized")
+        !deps._all && console.error([this], "not found dependencies", deps)
+        if (this.initialized || !deps._all) return
+
+        !this.prepared && this.prepare()
+        this.#draw()
+        this.#applyLogic()
+        this.#applyData()
+        this.initialized = true
     }
 }
-customElements.define("component-test", ReactiveBox)
+customElements.define("component-test", ComponentTest)
