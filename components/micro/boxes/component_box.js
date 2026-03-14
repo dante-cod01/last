@@ -57,7 +57,7 @@ export default class ComponentTest extends HTMLElement {
     #prepareConf() {
         this.css = this.deps.base.resolveCSS(this.css, this.#CSS, this)
         this.logic = this.deps.base.resolveLOGIC(this.logic, this.#LOGIC, this)
-        this.deps.base.addLinks(this.dom, this.links)
+        this.links && this.deps.base.addLinks(this.dom, this.links)
     }
 
     #logicDirection() {
@@ -67,7 +67,7 @@ export default class ComponentTest extends HTMLElement {
 
     #dataText() {
         const main = this.dom.querySelector(".main")
-        if (this.data.text) {
+        if (this.data?.text) {
             const text = this.data.text
             for (let i = 0; i < text.length; i++) {
                 const box = this.deps.base.add(main, "div", "", text[i] === " " ? "charBox_space" : "charBox center")
@@ -102,7 +102,7 @@ export default class ComponentTest extends HTMLElement {
                 .charBox {
                     width: var(--textBox_width);
                     height: var(--textBox_height);
-                    font-family: var(--text_fontFamily);
+                    font-family: var(--text_fontFamily, initial);
                     font-size: var(--text_fontSize);
                     font-weight: var(--text_fontWeight);
                     font-style: var(--text_fontStyle);
