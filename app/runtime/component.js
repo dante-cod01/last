@@ -1,8 +1,13 @@
-import { componentsList } from "../../conf/componentsList.js"
-import { dependenciesList } from "../../conf/dependenciesList.js"
-
+const mods = {}
 const components_reg = new Map()
 const dependencies_reg = new Map()
+
+const imports = async () => {
+    await Promise.all([
+        import(`${window.route}/app/conf/componentsList.js`).then(mod => mods["componentsList"] = mod.componentsList),
+        import(`${window.route}/app/conf/dependenciesList.js`).then(mod => mods["dependenciesList"] = mod.dependenciesList),
+    ])
+}
 
 const register = (reg, list, name) => {
     if (!list[name]) { console.error(name, `❌ not found in ${reg === components_reg ? "COMPONENTS" : "DEPENDENCIES"} list`); return }
@@ -37,13 +42,16 @@ const createInstance = (dep) => {
 }
 
 export const loader = async (name, box, config) => {
+    /* imports */
+    !Object.keys(mods).length && await imports()
+
     /* registers */
-    register(components_reg, componentsList, name)
-    componentsList[name].dependencies.forEach(dep => register(dependencies_reg, dependenciesList, dep))
+    register(components_reg, mods.componentsList, name)
+    mods.componentsList[name].dependencies.forEach(dep => register(dependencies_reg, mods.dependenciesList, dep))
 
     /* import modules */
-    const deps = componentsList[name].dependencies
-    await Promise.all([importMods(components_reg, componentsList, name), ...deps.map(dep => importMods(dependencies_reg, dependenciesList, dep))])
+    const deps = mods.componentsList[name].dependencies
+    await Promise.all([importMods(components_reg, mods.componentsList, name), ...deps.map(dep => importMods(dependencies_reg, mods.dependenciesList, dep))])
 
     /* create dependencies instances */
     const instances = {}
@@ -62,20 +70,19 @@ export const loader = async (name, box, config) => {
     /* register uses */
     registerUse(components_reg.get(name), component)
     deps.forEach(dep => registerUse((dependencies_reg.get(dep)), component))
-
     return component
 }
 
 export const updateDependencies = async (deps, component) => {
-    if (!Array.isArray(deps)) {
-        console.error(deps, `❌ new dependencies must be array`)
-        return
-    }
+    /* imports */
+    !Object.keys(mods).length && await imports()
+
+    if (!Array.isArray(deps)) { console.error(deps, `❌ new dependencies must be array`); return }
     const promises = []
     for (const dep of deps) {
-        const depAdded = register(dependencies_reg, dependenciesList, dep)
+        const depAdded = register(dependencies_reg, mods.dependenciesList, dep)
         registerUse(dependencies_reg.get(dep), component)
-        promises.push(importMods(dependencies_reg, dependenciesList, dep))
+        promises.push(importMods(dependencies_reg, mods.dependenciesList, dep))
     }
     await Promise.all(promises)
     deps.forEach(dep => {

@@ -1,4 +1,10 @@
-import * as load from "./loadComponent.js"
+const mods = {}
+
+const imports = async () => {
+    await Promise.all([
+        import(`${window.route}/app/runtime/component.js`).then(mod => mods["component"] = mod)
+    ])
+}
 
 const importTest = async () => {
     const componentName = "component-test"
@@ -28,10 +34,13 @@ const importTest = async () => {
         ]
     }
 
-    const component = await load.loader(componentName, document.body, config)
+    const component = await mods.component.loader(componentName, document.body, config)
     component.init()
-    await load.updateDependencies(["life"], component)
+/*     await load.updateDependencies(["life"], component)
     component.deps.life.test()
-}
+ */}
 
-importTest()
+export const init = async () => {
+    await imports()
+    importTest()
+}
