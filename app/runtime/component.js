@@ -12,8 +12,8 @@ const imports = async () => {
 const register = (reg, list, name) => {
     if (!list[name]) { console.error(name, `❌ not found in ${reg === components_reg ? "COMPONENTS" : "DEPENDENCIES"} list`); return }
     reg === components_reg
-        ? !reg.get(name) && reg.set(name, { "url": list[name].url, "module": null, "depsBase": list[name].dependencies, "usedBy": [] })
-        : !reg.get(name) && reg.set(name, { "url": list[name].url, "module": null, "instance": null, "usedBy": [] })
+        ? !reg.get(name) && reg.set(name, { "url": `${window.route}${list[name].url}`, "module": null, "depsBase": list[name].dependencies, "usedBy": [] })
+        : !reg.get(name) && reg.set(name, { "url": `${window.route}${list[name].url}`, "module": null, "instance": null, "usedBy": [] })
     return reg.get(name)
 }
 
@@ -26,7 +26,7 @@ const importMods = async (register, list, name) => {
     if (!reg.module) {
         reg.module = "import waiting"
         try {
-            const module = await import(list[name].url)
+            const module = await import(`${window.route}${list[name].url}`)
             reg.module = module
         } catch (error) {
             console.error(name, "❌ imported fail")
